@@ -195,7 +195,7 @@ rb_CFNumber_convert(CFNumberRef number)
   return result;
 }
 
-VALUE
+static VALUE
 rb_CFArray_convert(CFArrayRef array)
 {
   CFRetain(array); /* retain for the duration of this function */
@@ -216,7 +216,7 @@ rb_CFArray_convert(CFArrayRef array)
   return result;
 }
 
-VALUE
+static VALUE
 rb_CFDictionary_convert(CFDictionaryRef dict, bool keys2sym)
 {
   CFRetain(dict);                                /* retain for the duration */
@@ -347,6 +347,15 @@ cf_rstring_convert(VALUE obj)
 }
 
 /**
+ * Convert a ruby symbol into a CFStringRef
+ */
+static inline CFStringRef
+cf_rsym_convert(VALUE obj)
+{
+  return cf_rstring_convert(rb_sym2str(obj));
+}
+
+/**
  * Convert a ruby object to a CFTypeRef.
  *
  * We really should figure out how to convert this to data or Marshal it, but
@@ -416,8 +425,7 @@ static CFArrayRef
 cf_rarray_convert(VALUE obj)
 {
   Check_Type(obj, T_ARRAY);
-  VALUE countv = rb_funcall(obj, id_count, 0); /* obj.count */
-  CFIndex i, count = NUM2LONG(countv);
+  CFIndex i, count = RARRAY_LEN(obj);
 
   CFMutableArrayRef tmp_result;
   CFArrayRef result;
@@ -428,7 +436,7 @@ cf_rarray_convert(VALUE obj)
   for (i = 0; i < count; i++) {
     VALUE rval = rb_ary_entry(obj, i);
     CFTypeRef cfval = ruby_to_corefoundation(rval);
-    CFArraySetValueAtIndex(tmp_result, i, &cfval);
+    CFArraySetValueAtIndex(tmp_result, i, cfval);
   }
 
   result = CFArrayCreateCopy(kCFAllocatorDefault, tmp_result);
@@ -484,6 +492,8 @@ ruby_to_corefoundation(VALUE obj)
   switch (TYPE(obj)) {
   case T_STRING:
     return cf_rstring_convert(obj);
+  case T_SYMBOL:
+    return cf_rsym_convert(obj);
   case T_ARRAY:
     return cf_rarray_convert(obj);
   case T_HASH:
@@ -502,7 +512,7 @@ ruby_to_corefoundation(VALUE obj)
 }
 
 /**
- * Convert a ruby object to a CFPropertyListRef.
+ * Convert a CFPropertyListRef to a ruby object.
  */
 static inline VALUE
 cfplist_to_ruby(CFPropertyListRef plist, Boolean symbolize_keys)
@@ -516,6 +526,22 @@ cfplist_to_ruby(CFPropertyListRef plist, Boolean symbolize_keys)
 
   /* Return nil if it's not an array or hash */
   return Qnil;
+}
+
+/**
+ * Convert a ruby object to a CFPropertyListRef.
+ */
+static inline CFPropertyListRef
+ruby_to_cfplist(VALUE obj)
+{
+  switch (TYPE(obj)) {
+  case T_ARRAY:
+    return cf_rarray_convert(obj);
+  case T_HASH:
+    return cf_rhash_convert(obj);
+  default:
+    return NULL;
+  }
 }
 
 /*******************************************************************************
@@ -620,6 +646,55 @@ plist_parse(int argc, VALUE *argv, VALUE self)
   return result;
 }
 
+static VALUE
+plist_generate(int argc, VALUE *argv, VALUE self)
+{
+  VALUE obj;
+  VALUE opts;
+
+  /* Scan the arguments. This method is called like this:
+   *    CFPlist.generate(obj, opts = {})
+   */
+  rb_scan_args(argc, argv, "11", &obj, &opts);
+
+  /* opts will be nil (rather than {}) if no option hash was passed. */
+  if (NIL_P(opts))
+    opts = rb_hash_new();
+
+  /* opts is currently reserved for future use, and we don't actually respect
+   * any options passed. */
+  CFPropertyListRef obj_as_plist;
+  CFErrorRef error = NULL;
+  CFDataRef xml_data;
+
+  obj_as_plist = ruby_to_cfplist(obj);
+  xml_data = CFPropertyListCreateData(kCFAllocatorDefault, obj_as_plist,
+                                      kCFPropertyListXMLFormat_v1_0, 0, &error);
+
+  /* Check to make sure no error occured */
+  if (error != NULL) {
+    /* if an error did occur, clean up the refs */
+    if (obj_as_plist != NULL)
+      CFRelease(obj_as_plist);
+    if (xml_data != NULL)
+      CFRelease(xml_data);
+    rb_raise_CFError(error);
+  }
+
+  /* Convert the CFData object to a ruby string */
+  VALUE result = rb_CFData_convert(xml_data);
+
+  /* clean up references */
+  if (obj_as_plist != NULL)
+    CFRelease(obj_as_plist);
+  if (xml_data != NULL)
+    CFRelease(xml_data);
+  if (error != NULL)
+    CFRelease(error);
+
+  return result;
+}
+
 void
 Init_cfplist(void)
 {
@@ -639,4 +714,5 @@ Init_cfplist(void)
       rb_define_class_under(rb_mCFPlist, "CocoaError", rb_eCFError);
 
   rb_define_module_function(rb_mCFPlist, "_parse", plist_parse, -1);
+  rb_define_module_function(rb_mCFPlist, "_generate", plist_generate, -1);
 }

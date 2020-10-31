@@ -39,10 +39,13 @@ RSpec.describe CFPlist do
 
   describe ".generate" do
     context "when passed an array" do
-      let(:array) { [1, "two", { c: 13 }] }
+      let(:array) { [1, "two", { "c" => 13 }] }
 
       it "generates a plist from the array" do
-        expect(described_class.generate(array)).to eq array_data
+        expect(described_class.generate(array)).to \
+          match(%r{<array>\s+<integer>1</integer>\s+<string>two</string>\s+
+                  <dict>\s+<key>c</key>\s+<integer>13</integer>\s+</dict>\s+
+                  </array>}x)
       end
     end
 
@@ -62,7 +65,8 @@ RSpec.describe CFPlist do
       end
 
       it "generates a plist from the hash" do
-        expect(described_class.generate(hash)).to eq dict_data
+        expect(described_class.generate(hash)).to \
+          match %r{<key>AreaCode</key>\s+<string>555</string>}
       end
     end
   end
