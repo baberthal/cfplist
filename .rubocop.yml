@@ -1,0 +1,85 @@
+require:
+  - rubocop-rspec
+
+AllCops:
+  TargetRubyVersion: 2.6
+  NewCops: enable
+  Exclude:
+    - '*.gemspec'
+    - 'bin/**/*'
+
+#################
+#  Layout Cops  #
+#################
+
+Layout/AccessModifierIndentation:
+  EnforcedStyle: outdent
+  AutoCorrect: true
+
+Layout/EmptyLineBetweenDefs:
+  AllowAdjacentOneLineDefs: true
+
+Layout/CaseIndentation:
+  EnforcedStyle: end
+
+Layout/HeredocIndentation:
+  Enabled: false
+
+Layout/EndAlignment:
+  EnforcedStyleAlignWith: variable
+  AutoCorrect: true
+
+Layout/LineLength:
+  Max: 81
+
+###############
+#  Lint Cops  #
+###############
+
+# These are idiomatic
+Lint/AssignmentInCondition:
+  Enabled: false
+
+##################
+#  Metrics Cops  #
+##################
+
+Metrics/MethodLength:
+  Max: 25
+
+Metrics/AbcSize:
+  Max: 25
+
+Metrics/ClassLength:
+  Max: 150
+
+Metrics/ModuleLength:
+  Max: 150
+
+################
+#  Style Cops  #
+################
+
+Style/CommandLiteral:
+  EnforcedStyle: percent_x
+
+Style/Documentation:
+  Enabled: false
+
+Style/FormatString:
+  EnforcedStyle: percent
+
+Style/SpecialGlobalVars:
+  EnforcedStyle: use_perl_names
+
+Style/StringLiterals:
+  ConsistentQuotesInMultiline: true
+  EnforcedStyle: double_quotes
+
+Style/PerlBackrefs:
+  Enabled: false
+
+Style/ParallelAssignment:
+  Enabled: false
+
+#  vim: set ts=8 sw=2 tw=0 ft=yaml et :
