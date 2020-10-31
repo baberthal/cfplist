@@ -7,6 +7,7 @@ AllCops:
   Exclude:
     - '*.gemspec'
     - 'bin/**/*'
+    - '**/extconf.rb'
 
 #################
 #  Layout Cops  #
@@ -56,6 +57,10 @@ Metrics/ClassLength:
 Metrics/ModuleLength:
   Max: 150
 
+Metrics/BlockLength:
+  Exclude:
+    - 'spec/**/*_spec.rb'
+
 ################
 #  Style Cops  #
 ################
@@ -81,5 +86,14 @@ Style/PerlBackrefs:
 
 Style/ParallelAssignment:
   Enabled: false
+
+
+################
+#  RSpec Cops  #
+################
+
+RSpec/FilePath:
+  CustomTransform:
+    CFPlist: cfplist
 
 #  vim: set ts=8 sw=2 tw=0 ft=yaml et :
