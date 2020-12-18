@@ -15,4 +15,6 @@ group :development, :test do
 
   gem "colorize" # for pry prompt
   gem "pry"
+
+  gem "simplecov"
 end
